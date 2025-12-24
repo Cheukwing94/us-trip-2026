@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>美西 15 天自駕之旅 - 雲端同步協作版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'us-trip-2026';
+        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const { createApp, ref, reactive, onMounted, watch } = Vue;
+
+        createApp({
+            setup() {
+                const currentTab = ref('schedule');
+                const listSubTab = ref('pre');
+                const currentDay = ref(1);
+                const showModal = ref(false);
+                const isEditing = ref(false);
+                const currentEditIdx = ref(-1);
+                const user = ref(null);
+                const isLoading = ref(true);
+
+                const form = reactive({ time: '', title: '', desc: '', mapUrl: '', note: '', parkingDesc: '', parkingMapUrl: '', type: 'activity' });
+                const newPreTripItem = ref('');
+                const newPackingItems = reactive({});
+                const newCategoryName = ref('');
+
+                const tabs = [
+                    { id: 'schedule', name: '詳細行程', icon: 'fas fa-calendar-alt' },
+                    { id: 'route', name: '總體路線', icon: 'fas fa-route' },
+                    { id: 'lists', name: '準備清單', icon: 'fas fa-clipboard-list' }
+                ];
+
+                // --- 初始詳細數據 (當雲端沒數據時使用) ---
+                const initialDailyData = [
+                    [{ time: '09:00', title: '香港機場 Lounge', desc: '出發休息', mapUrl: 'https://www.google.com/maps/search/HKG+Lounge', type: 'activity' }, { time: '12:35', title: 'CX880 航班', desc: '前往 LAX', type: 'transport' }, { time: '09:15', title: '抵達 LAX', desc: '入境及取行李', mapUrl: 'https://www.google.com/maps/search/LAX', type: 'transport' }, { time: '13:00', title: '飯店入住', desc: 'The Commerce Casino', mapUrl: 'https://www.google.com/maps/search/The+Commerce+Casino', type: 'hotel' }, { time: '15:00', title: 'Santa Monica', desc: '日落海灘', mapUrl: 'https://www.google.com/maps/search/Santa+Monica+Beach', type: 'view' }],
+                    [{ time: '06:00', title: 'Griffith Park', desc: '日出野餐', mapUrl: 'https://www.google.com/maps/search/Griffith+Park', type: 'view' }, { time: '15:30', title: 'NBA 觀賽', desc: 'Crypto.com Arena', mapUrl: 'https://www.google.com/maps/search/Crypto.com+Arena', type: 'activity' }],
+                    [{ time: '09:00', title: '前往拉斯維加斯', desc: '自駕路段', type: 'transport' }, { time: '15:00', title: '飯店入住', desc: 'The Venetian', mapUrl: 'https://www.google.com/maps/search/The+Venetian+Vegas', type: 'hotel' }],
+                    [{ time: '19:00', title: 'The Sphere', desc: '球體劇院表演', mapUrl: 'https://www.google.com/maps/search/The+Sphere', type: 'activity' }],
+                    [{ time: '09:00', title: '七彩巨石', desc: 'Seven Magic Mountains', mapUrl: 'https://www.google.com/maps/search/Seven+Magic+Mountains', type: 'view' }],
+                    [{ time: '06:00', title: '馬蹄灣日出', desc: 'Horseshoe Bend', mapUrl: 'https://www.google.com/maps/search/Horseshoe+Bend', type: 'view' }, { time: '12:30', title: '錫安國家公園', desc: 'Zion National Park', mapUrl: 'https://www.google.com/maps/search/Zion', type: 'activity' }],
+                    [{ time: '16:00', title: '死亡谷沙丘', desc: 'Mesquite Flat Sand Dunes', mapUrl: 'https://www.google.com/maps/search/Mesquite+Flat+Sand+Dunes', type: 'view' }],
+                    [{ time: '09:00', title: '惡水盆地', desc: 'Badwater Basin', mapUrl: 'https://www.google.com/maps/search/Badwater+Basin', type: 'view' }, { time: '20:00', title: '抵達 Bakersfield', type: 'hotel' }],
+                    [{ time: '17:00', title: '金門大橋', desc: 'Golden Gate Bridge', mapUrl: 'https://www.google.com/maps/search/Golden+Gate+Bridge', type: 'view' }],
+                    [{ time: '10:00', title: '舊金山市區', desc: '漁人碼頭等', type: 'activity' }],
+                    [{ time: '08:00', title: '鴿子點燈塔', desc: 'Pigeon Point', mapUrl: 'https://www.google.com/maps/search/Pigeon+Point+Lighthouse', type: 'view' }, { time: '14:30', title: 'Bixby Bridge', mapUrl: 'https://www.google.com/maps/search/Bixby+Creek+Bridge', type: 'view' }],
+                    [{ time: '11:00', title: '丹麥村', desc: 'Solvang', mapUrl: 'https://www.google.com/maps/search/Solvang', type: 'view' }],
+                    [{ time: '08:00', title: 'Disneyland', desc: '全日迪士尼', mapUrl: 'https://www.google.com/maps/search/Disneyland', type: 'activity' }],
+                    [{ time: '10:00', title: '最後採買', type: 'shop' }],
+                    [{ time: '20:00', title: '抵達 LAX', desc: '返港', type: 'transport' }]
+                ];
+                
+                const initialRouteMap = [
+                    { days: 'Phase 1', city: '洛杉磯', highlights: '聖莫尼卡海灘、好萊塢、NBA。' },
+                    { days: 'Phase 2', city: '拉斯維加斯', highlights: '威尼斯人、The Sphere、奧特萊斯。' },
+                    { days: 'Phase 3', city: '國家公園巡禮', highlights: '馬蹄灣、錫安、死亡谷。' },
+                    { days: 'Phase 4', city: '舊金山與一號公路', highlights: '金門大橋、卡梅爾、丹麥村。' }
+                ];
+
+                const initialPreTripItems = [
+                    { name: '美國簽證 (ESTA)', checked: false }, { name: '機票預訂', checked: false }, { name: '行山襪', checked: false },
+                    { name: '一次性內衣', checked: false }, { name: '流動尿袋', checked: false }, { name: '野餐墊', checked: false }
+                ];
+
+                const initialPackingData = {
+                    "重要證件": ['護照', '駕照', '信用卡'].map(n => ({name: n, checked: false})),
+                    "電子產品": ['手機', '行動電源', '轉換插頭'].map(n => ({name: n, checked: false})),
+                    "LA 特選": ['行山鞋', '行山襪', '流動尿袋'].map(n => ({name: n, checked: false}))
+                };
+
+                const dailyData = ref(initialDailyData);
+                const preTripItems = ref(initialPreTripItems);
+                const packingData = ref(initialPackingData);
+                const routeMap = ref(initialRouteMap);
+
+                // --- 雲端同步邏輯 (修正 6 段 segments) ---
+                const getDocRef = (collectionName) => {
+                    // 修正：artifacts(1)/appId(2)/public(3)/data(4)/collectionName(5)/main(6) -> 偶數段落
+                    return doc(db, 'artifacts', appId, 'public', 'data', collectionName, 'main');
+                };
+
+                const syncToCloud = async (collectionName, data) => {
+                    if (!user.value) return;
+                    try {
+                        await setDoc(getDocRef(collectionName), { content: JSON.parse(JSON.stringify(data)) });
+                    } catch (e) { console.error("同步失敗:", e); }
+                };
+
+                onMounted(async () => {
+                    try {
+                        if (authToken) { await signInWithCustomToken(auth, authToken); } 
+                        else { await signInAnonymously(auth); }
+                    } catch (e) { console.error("認證失敗:", e); }
+
+                    onAuthStateChanged(auth, (u) => {
+                        user.value = u;
+                        if (u) {
+                            const listen = (colName, refObj) => {
+                                onSnapshot(getDocRef(colName), (snap) => {
+                                    if (snap.exists()) { refObj.value = snap.data().content; }
+                                    isLoading.value = false;
+                                }, () => { isLoading.value = false; });
+                            };
+
+                            listen('dailySchedule', dailyData);
+                            listen('preTripItems', preTripItems);
+                            listen('packingData', packingData);
+                            listen('routeMap', routeMap);
+                        }
+                    });
+                });
+
+                // --- 行程編輯功能 ---
+                const saveForm = async () => {
+                    const newData = [...dailyData.value];
+                    const dayItems = [...newData[currentDay.value - 1]];
+                    if (isEditing.value) { dayItems[currentEditIdx.value] = { ...form }; } 
+                    else { dayItems.push({ ...form }); dayItems.sort((a, b) => a.time.localeCompare(b.time)); }
+                    newData[currentDay.value - 1] = dayItems;
+                    await syncToCloud('dailySchedule', newData);
+                    showModal.value = false;
+                };
+
+                const removeItem = async (idx) => {
+                    if (!confirm('確定刪除？')) return;
+                    const newData = [...dailyData.value];
+                    newData[currentDay.value - 1].splice(idx, 1);
+                    await syncToCloud('dailySchedule', newData);
+                };
+
+                const moveItem = async (idx, dir) => {
+                    const items = [...dailyData.value[currentDay.value - 1]];
+                    const target = idx + dir;
+                    if (target >= 0 && target < items.length) {
+                        [items[idx], items[target]] = [items[target], items[idx]];
+                        const newData = [...dailyData.value];
+                        newData[currentDay.value - 1] = items;
+                        await syncToCloud('dailySchedule', newData);
+                    }
+                };
+
+                // --- 清單管理功能 ---
+                const addCategory = async () => {
+                    if (newCategoryName.value && !(newCategoryName.value in packingData.value)) {
+                        const newData = { ...packingData.value, [newCategoryName.value]: [] };
+                        await syncToCloud('packingData', newData);
+                        newCategoryName.value = '';
+                    }
+                };
+
+                const removeCategory = async (cat) => {
+                    if (confirm(`刪除「${cat}」？`)) {
+                        const newData = { ...packingData.value };
+                        delete newData[cat];
+                        await syncToCloud('packingData', newData);
+                    }
+                };
+
+                const addPackingItem = async (cat) => {
+                    if (newPackingItems[cat]?.trim()) {
+                        const newData = { ...packingData.value };
+                        newData[cat].push({ name: newPackingItems[cat].trim(), checked: false });
+                        await syncToCloud('packingData', newData);
+                        newPackingItems[cat] = '';
+                    }
+                };
+
+                const toggleList = async (type) => {
+                    const data = type === 'pre' ? preTripItems.value : packingData.value;
+                    await syncToCloud(type === 'pre' ? 'preTripItems' : 'packingData', data);
+                };
+
+                const addPreTripItem = async () => {
+                    if (newPreTripItem.value.trim()) {
+                        const newData = [...preTripItems.value, { name: newPreTripItem.value.trim(), checked: false }];
+                        await syncToCloud('preTripItems', newData);
+                        newPreTripItem.value = '';
+                    }
+                };
+
+                const removePreTripItem = async (idx) => {
+                    const newData = [...preTripItems.value];
+                    newData.splice(idx, 1);
+                    await syncToCloud('preTripItems', newData);
+                };
+
+                return {
+                    currentTab, listSubTab, currentDay, tabs, dailyData, routeMap, packingData, preTripItems,
+                    showModal, isEditing, form, user, isLoading,
+                    openEditModal(item, idx) { isEditing.value = true; currentEditIdx.value = idx; Object.assign(form, item); showModal.value = true; },
+                    openAddModal() { isEditing.value = false; Object.assign(form, { time: '00:00', title: '', desc: '', mapUrl: '', note: '', parkingDesc: '', parkingMapUrl: '', type: 'activity' }); showModal.value = true; },
+                    saveForm, removeItem, moveItem, addCategory, removeCategory, addPackingItem, 
+                    removePackingItem(cat, idx) { packingData.value[cat].splice(idx, 1); syncToCloud('packingData', packingData.value); },
+                    toggleList, addPreTripItem, removePreTripItem, newPreTripItem, newPackingItems, newCategoryName,
+                    resetAllData() { if (confirm('重置雲端數據為原始版本？')) { syncToCloud('dailySchedule', initialDailyData); syncToCloud('preTripItems', initialPreTripItems); syncToCloud('packingData', initialPackingData); syncToCloud('routeMap', initialRouteMap); } }
+                };
+            }
+        }).mount('#app');
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+        body { background-color: #f1f5f9; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .glass-card { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 24px; }
+        .tab-active { color: #3b82f6; transform: translateY(-2px); transition: all 0.3s ease; }
+        .note-box { background: #fefce8; border-left: 3px solid #eab308; }
+        .parking-box { background: #f0f9ff; border-left: 3px solid #0ea5e9; }
+        [v-cloak] { display: none; }
+        input[type="checkbox"]:checked + span { text-decoration: line-through; opacity: 0.5; }
+    </style>
+</head>
+<body class="app-bg pb-32">
+    <div id="app" v-cloak>
+        <!-- Loading -->
+        <div v-if="isLoading" class="fixed inset-0 z-[200] bg-white bg-opacity-90 flex flex-col items-center justify-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+            <p class="mt-4 text-blue-500 font-bold">雲端同步中...</p>
+        </div>
+
+        <header class="sticky top-0 z-40 px-6 pt-8 pb-4 bg-[#e0f2fe] bg-opacity-95 backdrop-blur-md border-b border-blue-100">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h1 class="text-2xl font-black text-gray-800 tracking-tight">美西同步手帳</h1>
+                    <p class="text-[9px] font-medium text-blue-400">UID: {{ user?.uid }}</p>
+                </div>
+                <button @click="resetAllData" class="text-[10px] bg-white px-2 py-1 rounded-lg text-red-400 shadow-sm">清空同步</button>
+            </div>
+        </header>
+
+        <main class="px-5 pt-4">
+            <!-- 1. 行程表 -->
+            <div v-if="currentTab === 'schedule'">
+                <div class="flex overflow-x-auto gap-3 mb-6 hide-scrollbar py-2">
+                    <button v-for="d in 15" :key="d" @click="currentDay = d"
+                        :class="currentDay === d ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-white text-gray-500'"
+                        class="flex-shrink-0 w-14 h-16 rounded-2xl flex flex-col items-center justify-center transition-all duration-300">
+                        <span class="text-[10px] font-bold opacity-70">Day</span>
+                        <span class="text-lg font-black">{{ d }}</span>
+                    </button>
+                </div>
+
+                <div class="space-y-5">
+                    <div v-for="(item, idx) in dailyData[currentDay-1]" :key="idx" class="glass-card p-5 shadow-sm relative group">
+                        <div class="absolute -left-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button @click="moveItem(idx, -1)" class="w-6 h-6 bg-white shadow-md rounded-full text-blue-500 flex items-center justify-center border border-gray-100"><i class="fas fa-chevron-up text-[10px]"></i></button>
+                            <button @click="moveItem(idx, 1)" class="w-6 h-6 bg-white shadow-md rounded-full text-blue-500 flex items-center justify-center border border-gray-100"><i class="fas fa-chevron-down text-[10px]"></i></button>
+                        </div>
+                        <div class="flex gap-4 items-start">
+                            <div class="flex flex-col items-center min-w-[50px]"><span class="text-sm font-black text-blue-600">{{ item.time }}</span></div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-bold text-gray-800 leading-tight">{{ item.title }}</h3>
+                                        <a v-if="item.mapUrl" :href="item.mapUrl" target="_blank" class="text-red-500"><i class="fas fa-location-dot text-xs"></i></a>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button @click="openEditModal(item, idx)" class="w-7 h-7 bg-gray-50 flex items-center justify-center rounded-lg text-gray-400"><i class="fas fa-pen text-[10px]"></i></button>
+                                        <button @click="removeItem(idx)" class="w-7 h-7 bg-red-50 flex items-center justify-center rounded-lg text-red-200"><i class="fas fa-trash text-[10px]"></i></button>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mb-2">{{ item.desc }}</p>
+                                <div v-if="item.note" class="note-box p-3 rounded-xl mb-2 text-[11px] text-yellow-800"><i class="fas fa-sticky-note mr-1"></i>{{ item.note }}</div>
+                                <div v-if="item.parkingDesc || item.parkingMapUrl" class="parking-box p-3 rounded-xl">
+                                    <div class="flex justify-between mb-1"><span class="text-[9px] font-bold text-blue-700 uppercase"><i class="fas fa-square-p mr-1"></i>Parking</span><a v-if="item.parkingMapUrl" :href="item.parkingMapUrl" target="_blank" class="text-[9px] bg-blue-500 text-white px-2 py-0.5 rounded-md">導航</a></div>
+                                    <p class="text-[11px] text-blue-800">{{ item.parkingDesc }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button @click="openAddModal" class="w-full py-4 border-2 border-dashed border-blue-200 rounded-3xl text-blue-400 font-bold">+ 新增行程</button>
+                </div>
+            </div>
+
+            <!-- 2. 路線 -->
+            <div v-if="currentTab === 'route'" class="space-y-4">
+                <div v-for="(route, rIdx) in routeMap" :key="rIdx" class="glass-card p-5 relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 text-blue-50 text-6xl font-black italic">0{{rIdx+1}}</div>
+                    <span class="text-[10px] font-bold text-blue-500 uppercase">{{ route.days }}</span>
+                    <h3 class="text-xl font-black text-gray-800 mt-1">{{ route.city }}</h3>
+                    <p class="text-xs text-gray-500 mt-3 border-t border-gray-50 pt-3">{{ route.highlights }}</p>
+                </div>
+            </div>
+
+            <!-- 3. 清單 -->
+            <div v-if="currentTab === 'lists'">
+                <div class="flex bg-gray-200 bg-opacity-50 p-1 rounded-2xl mb-6">
+                    <button @click="listSubTab = 'pre'" :class="listSubTab === 'pre' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'" class="flex-1 py-2 rounded-xl text-sm font-bold">預購清單</button>
+                    <button @click="listSubTab = 'packing'" :class="listSubTab === 'packing' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'" class="flex-1 py-2 rounded-xl text-sm font-bold">行李清單</button>
+                </div>
+
+                <div v-if="listSubTab === 'pre'" class="space-y-3">
+                    <div v-for="(item, idx) in preTripItems" :key="idx" class="glass-card p-4 flex items-center justify-between group">
+                        <label class="flex items-center gap-3 flex-1">
+                            <input type="checkbox" v-model="item.checked" @change="toggleList('pre')" class="w-6 h-6 rounded-full border-blue-200 text-blue-600">
+                            <span class="text-gray-700">{{ item.name }}</span>
+                        </label>
+                        <button @click="removePreTripItem(idx)" class="text-red-200"><i class="fas fa-times-circle"></i></button>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <input v-model="newPreTripItem" @keyup.enter="addPreTripItem" type="text" placeholder="新增..." class="flex-1 bg-white p-3 rounded-2xl text-sm">
+                        <button @click="addPreTripItem" class="bg-blue-600 text-white w-12 h-12 rounded-2xl"><i class="fas fa-plus"></i></button>
+                    </div>
+                </div>
+
+                <div v-if="listSubTab === 'packing'" class="space-y-8 pb-10">
+                    <div v-for="(items, category) in packingData" :key="category">
+                        <h3 class="text-[10px] font-black text-gray-400 uppercase mb-4 px-2 flex justify-between items-center group">
+                            <span>{{ category }}</span>
+                            <button @click="removeCategory(category)" class="text-red-200 opacity-0 group-hover:opacity-100 transition-all">刪除</button>
+                        </h3>
+                        <div class="grid grid-cols-1 gap-2">
+                            <div v-for="(item, idx) in items" :key="idx" class="glass-card px-4 py-3 flex items-center justify-between group">
+                                <label class="flex items-center gap-3 flex-1">
+                                    <input type="checkbox" v-model="item.checked" @change="toggleList('packing')" class="w-5 h-5 rounded border-blue-100">
+                                    <span class="text-[13px] text-gray-600">{{ item.name }}</span>
+                                </label>
+                                <button @click="removePackingItem(category, idx)" class="text-red-100"><i class="fas fa-times-circle"></i></button>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex gap-2">
+                            <input v-model="newPackingItems[category]" @keyup.enter="addPackingItem(category)" type="text" placeholder="新增物品" class="flex-1 bg-white bg-opacity-50 p-2 px-4 rounded-xl text-xs">
+                            <button @click="addPackingItem(category)" class="bg-blue-400 text-white px-4 rounded-xl text-xs">新增</button>
+                        </div>
+                    </div>
+                    <div class="pt-6 border-t">
+                        <input v-model="newCategoryName" @keyup.enter="addCategory" type="text" placeholder="新類別名稱..." class="w-full bg-white border border-blue-100 p-3 rounded-2xl text-sm mb-2">
+                        <button @click="addCategory" class="w-full bg-blue-600 text-white py-3 rounded-2xl font-bold text-sm">新增自定義類別</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 編輯彈窗 -->
+        <div v-if="showModal" class="fixed inset-0 z-[100] modal-overlay flex items-center justify-center p-6">
+            <div class="bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden">
+                <div class="p-6 overflow-y-auto max-h-[70vh]">
+                    <h2 class="text-xl font-black mb-6">{{ isEditing ? '編輯' : '新增' }}項目</h2>
+                    <div class="space-y-4">
+                        <input v-model="form.time" type="text" placeholder="時間" class="w-full bg-gray-50 p-3 rounded-xl text-sm">
+                        <input v-model="form.title" type="text" placeholder="名稱" class="w-full bg-gray-50 p-3 rounded-xl text-sm">
+                        <input v-model="form.mapUrl" type="text" placeholder="地圖連結" class="w-full bg-gray-50 p-3 rounded-xl text-xs">
+                        <textarea v-model="form.desc" placeholder="簡短描述" class="w-full bg-gray-50 p-3 rounded-xl text-sm"></textarea>
+                        <textarea v-model="form.note" placeholder="備註" class="w-full bg-yellow-50 p-3 rounded-xl text-sm"></textarea>
+                        <input v-model="form.parkingDesc" type="text" placeholder="泊車建議" class="w-full bg-blue-50 p-3 rounded-xl text-sm">
+                        <input v-model="form.parkingMapUrl" type="text" placeholder="泊車地圖連結" class="w-full bg-blue-50 p-3 rounded-xl text-xs">
+                    </div>
+                </div>
+                <div class="p-6 bg-gray-50 flex gap-3">
+                    <button @click="showModal = false" class="flex-1 font-bold text-gray-400">取消</button>
+                    <button @click="saveForm" class="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-2xl">儲存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Bar -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white bg-opacity-95 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-4 px-2 shadow-2xl z-50">
+            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" :class="currentTab === tab.id ? 'tab-active' : 'text-gray-400'" class="flex flex-col items-center gap-1 w-1/3">
+                <i :class="tab.icon" class="text-xl"></i>
+                <span class="text-[10px] font-bold">{{ tab.name }}</span>
+            </button>
+        </nav>
+    </div>
+</body>
+</html>
