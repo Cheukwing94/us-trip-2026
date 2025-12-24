@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>美西 15 天自駕之旅 - 指定用戶協作版</title>
+    <title>美西 15 天自駕之旅 - 指定用戶同步協作版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -45,7 +45,6 @@
                 const isLoading = ref(true);
                 const configError = ref(false);
                 
-                // 登入相關
                 const loginEmail = ref('');
                 const loginPassword = ref('');
                 const loginError = ref('');
@@ -61,46 +60,74 @@
                     { id: 'lists', name: '準備清單', icon: 'fas fa-clipboard-list' }
                 ];
 
-                // 完整 15 天詳細行程預設資料
+                // --- 補全 15 天詳細行程預設資料 ---
                 const initialDailyData = [
-                    [{ time: '09:00', title: '香港機場 Lounge', desc: '預辦登機與休息', mapUrl: 'https://www.google.com/maps/search/HKG+Lounge', type: 'activity' }, { time: '12:35', title: '航班起飛 CX880', desc: '前往 LAX 洛杉磯', type: 'transport' }, { time: '09:15', title: '抵達 LAX 機場', desc: '辦理入境與領取行李', mapUrl: 'https://www.google.com/maps/search/LAX', type: 'transport' }, { time: '13:00', title: '飯店入住', desc: 'The Commerce Casino & Hotel', mapUrl: 'https://www.google.com/maps/search/The+Commerce+Casino+%26+Hotel', type: 'hotel', note: '確認停車免費' }, { time: '15:00', title: '聖莫尼卡海灘', desc: 'Santa Monica Beach 賞日落', mapUrl: 'https://www.google.com/maps/search/Santa+Monica+Beach', type: 'view', parkingDesc: 'Parking Structure 6' }],
-                    [{ time: '06:00', title: 'Griffith Park', desc: '天文台日出與野餐', mapUrl: 'https://www.google.com/maps/search/Griffith+Park', type: 'view' }, { time: '12:00', title: '中央市場', desc: 'Grand Central Market', mapUrl: 'https://www.google.com/maps/search/Grand+Central+Market', type: 'food' }, { time: '15:30', title: 'NBA 觀賽', desc: 'Crypto.com Arena', mapUrl: 'https://www.google.com/maps/search/Crypto.com+Arena', type: 'activity' }],
-                    [{ time: '15:00', title: '飯店入住', desc: 'The Venetian 威尼斯人', mapUrl: 'https://www.google.com/maps/search/The+Venetian+Vegas', type: 'hotel' }, { time: '18:30', title: '費蒙街體驗', desc: 'Fremont Street Experience', type: 'view' }],
-                    [{ time: '19:00', title: 'The Sphere', desc: '球體表演', mapUrl: 'https://www.google.com/maps/search/The+Sphere', type: 'activity' }],
-                    [{ time: '09:30', title: '七彩巨石', mapUrl: 'https://www.google.com/maps/search/Seven+Magic+Mountains', type: 'view' }],
-                    [{ time: '06:00', title: '馬蹄灣日出', mapUrl: 'https://www.google.com/maps/search/Horseshoe+Bend', type: 'view' }, { time: '11:30', title: '飯店入住', desc: 'Hotel de Novo Springdale', type: 'hotel' }, { time: '12:30', title: 'Angels Landing', type: 'activity' }],
-                    [{ time: '14:30', title: '死亡谷Check-in', desc: 'The Ranch', type: 'hotel' }, { time: '16:00', title: '死亡谷沙丘', type: 'view' }],
-                    [{ time: '06:00', title: 'Dante\'s View', type: 'view' }, { time: '09:00', title: '惡水盆地', type: 'view' }, { time: '20:00', title: '抵達 Bakersfield', type: 'hotel' }],
-                    [{ time: '17:00', title: '金門大橋', mapUrl: 'https://www.google.com/maps/search/Golden+Gate+Bridge', type: 'view' }],
-                    [{ time: '10:00', title: '舊金山市區', type: 'activity' }],
-                    [{ time: '11:00', title: '卡梅爾小鎮', type: 'activity' }, { time: '15:30', title: 'Bixby Bridge', type: 'view' }, { time: '18:00', title: 'Pismo Beach入住', type: 'hotel' }],
-                    [{ time: '11:00', title: '丹麥村', type: 'view' }, { time: '17:00', title: '返回洛杉磯', type: 'transport' }],
-                    [{ time: '08:00', title: 'Disneyland', desc: '全日', type: 'activity' }],
-                    [{ time: '10:00', title: '自由行程', type: 'shop' }],
-                    [{ time: '20:00', title: 'LAX', desc: '返港', type: 'transport' }]
+                    // Day 1: 到達
+                    [{ time: '09:00', title: '香港機場 Lounge', desc: '預辦登機與休息', mapUrl: 'https://www.google.com/maps/search/HKG+Lounge', type: 'activity' }, { time: '12:35', title: '航班 CX880', desc: '前往 LAX 洛杉磯', type: 'transport' }, { time: '09:15', title: '抵達 LAX', desc: '入境及提行李', mapUrl: 'https://www.google.com/maps/search/LAX', type: 'transport' }, { time: '13:00', title: '飯店入住', desc: 'The Commerce Casino', mapUrl: 'https://www.google.com/maps/search/The+Commerce+Casino', type: 'hotel', note: '確認美簽，停車場就在飯店門口' }, { time: '15:00', title: 'Santa Monica', desc: '海邊日落', mapUrl: 'https://www.google.com/maps/search/Santa+Monica+Beach', type: 'view', parkingDesc: '停車：Parking Structure 6' }],
+                    // Day 2: LA 經典
+                    [{ time: '06:00', title: 'Griffith Park', desc: '天文台日出與野餐', mapUrl: 'https://www.google.com/maps/search/Griffith+Park', type: 'view' }, { time: '08:00', title: 'Hollywood Sign', desc: 'Lake Hollywood Park 拍照', mapUrl: 'https://www.google.com/maps/search/Lake+Hollywood+Park', type: 'view' }, { time: '12:00', title: '中央市場', desc: 'Grand Central Market', mapUrl: 'https://www.google.com/maps/search/Grand+Central+Market', type: 'food' }, { time: '15:30', title: 'NBA 觀賽', desc: 'Crypto.com Arena', mapUrl: 'https://www.google.com/maps/search/Crypto.com+Arena', type: 'activity', note: '禁帶大型背包' }],
+                    // Day 3: 公路旅行
+                    [{ time: '09:00', title: '出發拉斯維加斯', desc: '穿越沙漠公路', type: 'transport' }, { time: '15:00', title: '飯店入住', desc: 'The Venetian 威尼斯人', mapUrl: 'https://www.google.com/maps/search/The+Venetian+Vegas', type: 'hotel' }, { time: '16:00', title: 'Outlets 購物', desc: 'LV North Premium Outlets', type: 'shop' }],
+                    // Day 4: LV 科技
+                    [{ time: '09:30', title: 'ARTE Museum', desc: '沉浸式藝術展', mapUrl: 'https://www.google.com/maps/search/ARTE+MUSEUM+LV', type: 'activity' }, { time: '13:00', title: 'Hello Kitty Cafe', type: 'food' }, { time: '19:00', title: 'The Sphere', desc: '科技巨球秀', mapUrl: 'https://www.google.com/maps/search/The+Sphere', type: 'activity' }],
+                    // Day 5: LV 景點
+                    [{ time: '09:00', title: 'Vegas Sign', type: 'view' }, { time: '09:30', title: '七彩巨石', desc: 'Seven Magic Mountains', mapUrl: 'https://www.google.com/maps/search/Seven+Magic+Mountains', type: 'view' }, { time: '18:00', title: 'MGM Show', desc: '太陽馬戲團 KA 等', type: 'activity' }],
+                    // Day 6: 國家公園
+                    [{ time: '06:00', title: '馬蹄灣日出', desc: 'Horseshoe Bend', mapUrl: 'https://www.google.com/maps/search/Horseshoe+Bend', type: 'view', note: '入園費 $10/車' }, { time: '11:30', title: '飯店入住', desc: 'Hotel de Novo Springdale', type: 'hotel' }, { time: '12:30', title: 'Angels Landing', desc: '錫安挑戰健行', mapUrl: 'https://www.google.com/maps/search/Angels+Landing', type: 'activity' }],
+                    // Day 7: 死亡谷
+                    [{ time: '08:00', title: 'Emerald Pools', type: 'activity' }, { time: '14:30', title: '死亡谷Check-in', desc: 'The Ranch at Death Valley', type: 'hotel' }, { time: '16:00', title: '死亡谷沙丘', mapUrl: 'https://www.google.com/maps/search/Mesquite+Flat+Sand+Dunes', type: 'view' }],
+                    // Day 8: 穿越
+                    [{ time: '06:00', title: 'Dante\'s View', type: 'view' }, { time: '09:00', title: '惡水盆地', desc: 'Badwater Basin', type: 'view' }, { time: '20:00', title: '抵達 Bakersfield', type: 'hotel' }],
+                    // Day 9: 舊金山
+                    [{ time: '10:00', title: 'Valpredo Farms', type: 'activity' }, { time: '17:00', title: '金門大橋', desc: 'Golden Gate Bridge', mapUrl: 'https://www.google.com/maps/search/Golden+Gate+Bridge', type: 'view' }],
+                    // Day 10: SF 市區
+                    [{ time: '10:00', title: '九曲花街', desc: 'Lombard Street', type: 'view' }, { time: '13:00', title: '漁人碼頭', type: 'activity' }],
+                    // Day 11: 一號公路
+                    [{ time: '08:00', title: '鴿子點燈塔', type: 'view' }, { time: '11:00', title: '卡梅爾小鎮', desc: 'Carmel', type: 'activity' }, { time: '15:30', title: 'Bixby Bridge', type: 'view' }, { time: '18:00', title: 'Pismo Beach入住', type: 'hotel' }],
+                    // Day 12: 返回
+                    [{ time: '11:00', title: '丹麥村', desc: 'Solvang', type: 'view' }, { time: '14:00', title: '聖塔巴巴拉', type: 'activity' }, { time: '17:00', title: '返回洛杉磯', type: 'transport' }],
+                    // Day 13: 迪士尼
+                    [{ time: '08:00', title: 'Disneyland', desc: '加州迪士尼樂園', mapUrl: 'https://www.google.com/maps/search/Disneyland', type: 'activity' }],
+                    // Day 14: 購物
+                    [{ time: '10:00', title: 'LA 自由購物', type: 'shop' }],
+                    // Day 15: 返港
+                    [{ time: '10:00', title: '最後採買', desc: '伴手禮', type: 'shop' }, { time: '20:00', title: '抵達 LAX', desc: '回程香港', type: 'transport' }]
                 ];
 
                 const initialPackingData = {
                     "重要證件": ['護照', '駕照', '信用卡', '少量現金', '身分證'].map(n => ({name: n, checked: false})),
                     "電子產品": ['手機', '行動電源', '相機', '轉換插頭'].map(n => ({name: n, checked: false})),
-                    "LA 特選": ['行山鞋', '行山襪', '流動尿袋', '野餐墊'].map(n => ({name: n, checked: false}))
+                    "日常洗漱": ['牙刷', '洗面乳', '防曬乳', '保濕面霜'].map(n => ({name: n, checked: false})),
+                    "LA 特選": ['行山鞋', '行山襪', '流動尿袋', '野餐墊', '手機掛繩'].map(n => ({name: n, checked: false}))
                 };
 
-                const initialPreTripItems = [{ name: '美國簽證 (ESTA)', checked: false }, { name: '機票預定', checked: false }, { name: '行山襪', checked: false }];
+                const initialPreTripItems = [
+                    { name: '美國簽證 (ESTA)', checked: false }, { name: '機票預定', checked: false }, 
+                    { name: '租車預定', checked: false }, { name: '流動尿袋', checked: false }, { name: '行山襪', checked: false }
+                ];
+
+                const initialRouteMap = [
+                    { days: 'Day 1-3', city: '洛杉磯', highlights: 'NBA、聖莫尼卡、好萊塢' },
+                    { days: 'Day 3-6', city: '拉斯維加斯', highlights: '威尼斯人、The Sphere、Outlets' },
+                    { days: 'Day 6-11', city: '國家公園與舊金山', highlights: '錫安、死亡谷、金門大橋' },
+                    { days: 'Day 11-15', city: '一號公路與迪士尼', highlights: '大蘇爾、迪士尼、回港' }
+                ];
 
                 const dailyData = ref(initialDailyData);
                 const packingData = ref(initialPackingData);
                 const preTripItems = ref(initialPreTripItems);
-                const routeMap = ref([{ days: 'Day 1-3', city: '洛杉磯', highlights: 'NBA, 聖莫尼卡, 好萊塢' }, { days: 'Day 3-6', city: '拉斯維加斯', highlights: '威尼斯人, The Sphere, 表演' }, { days: 'Day 6-15', city: '大環線', highlights: '國家公園, 舊金山, 一號公路, 迪士尼' }]);
+                const routeMap = ref(initialRouteMap);
 
                 const getDocRef = (name) => doc(db, 'artifacts', appId, 'public', 'data', name, 'main');
 
                 const syncToCloud = async (name, data) => {
                     if (!user.value) return;
-                    try { await setDoc(getDocRef(name), { content: JSON.parse(JSON.stringify(data)) }); } catch (e) { console.error("同步失敗:", e); }
+                    try {
+                        const payload = JSON.parse(JSON.stringify(data));
+                        await setDoc(getDocRef(name), { content: payload });
+                    } catch (e) { console.error("Cloud Sync Error:", e); }
                 };
 
-                // --- 身份驗證與監聽 ---
                 onMounted(async () => {
                     if (firebaseConfig.apiKey === "你的_API_KEY") {
                         configError.value = true;
@@ -116,57 +143,73 @@
                                 onSnapshot(getDocRef(name), (snap) => {
                                     if (snap.exists()) { refObj.value = snap.data().content; }
                                     isLoading.value = false;
-                                }, () => { isLoading.value = false; });
+                                }, (err) => { console.error(err); isLoading.value = false; });
                             };
                             listen('dailySchedule', dailyData);
                             listen('preTripItems', preTripItems);
                             listen('packingData', packingData);
                             listen('routeMap', routeMap);
-                        } else {
-                            isLoading.value = false;
-                        }
+                        } else { isLoading.value = false; }
                     });
                 });
 
-                const handleLogin = async () => {
-                    loginError.value = '';
-                    try {
-                        await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
-                    } catch (e) {
-                        loginError.value = '帳號或密碼錯誤，請檢查 Firebase 設定。';
+                const saveForm = async () => {
+                    // 修復：先更新本地再同步，並使用深拷貝確保數據完整
+                    const updatedDaily = JSON.parse(JSON.stringify(dailyData.value));
+                    const dayItems = updatedDaily[currentDay.value - 1];
+                    
+                    if (isEditing.value) {
+                        dayItems[currentEditIdx.value] = { ...form };
+                    } else {
+                        dayItems.push({ ...form });
+                        dayItems.sort((a, b) => a.time.localeCompare(b.time));
+                    }
+                    
+                    dailyData.value = updatedDaily;
+                    await syncToCloud('dailySchedule', updatedDaily);
+                    showModal.value = false;
+                };
+
+                const addPackingItem = async (cat) => {
+                    if (newPackingItems[cat]?.trim()) {
+                        packingData.value[cat].push({ name: newPackingItems[cat].trim(), checked: false });
+                        await syncToCloud('packingData', packingData.value);
+                        newPackingItems[cat] = '';
                     }
                 };
 
-                const handleLogout = async () => {
-                    await signOut(auth);
+                const addCategory = async () => {
+                    if (newCategoryName.value && !(newCategoryName.value in packingData.value)) {
+                        packingData.value[newCategoryName.value] = [];
+                        await syncToCloud('packingData', packingData.value);
+                        newCategoryName.value = '';
+                    }
                 };
 
-                const saveForm = async () => {
-                    const newData = [...dailyData.value];
-                    const dayItems = [...newData[currentDay.value - 1]];
-                    if (isEditing.value) { dayItems[currentEditIdx.value] = { ...form }; } 
-                    else { dayItems.push({ ...form }); dayItems.sort((a, b) => a.time.localeCompare(b.time)); }
-                    newData[currentDay.value - 1] = dayItems;
-                    await syncToCloud('dailySchedule', newData);
-                    showModal.value = false;
+                const removeCategory = async (cat) => {
+                    if (confirm(`刪除「${cat}」？`)) {
+                        delete packingData.value[cat];
+                        await syncToCloud('packingData', packingData.value);
+                    }
                 };
 
                 return {
                     currentTab, listSubTab, currentDay, tabs, dailyData, routeMap, packingData, preTripItems,
                     showModal, isEditing, form, user, isLoading, configError,
-                    loginEmail, loginPassword, loginError, handleLogin, handleLogout,
+                    loginEmail, loginPassword, loginError,
+                    handleLogin: async () => { try { await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); } catch(e) { loginError.value = "帳密錯誤"; } },
+                    handleLogout: async () => await signOut(auth),
                     openEditModal(item, idx) { isEditing.value = true; currentEditIdx.value = idx; Object.assign(form, item); showModal.value = true; },
                     openAddModal() { isEditing.value = false; Object.assign(form, { time: '00:00', title: '', desc: '', mapUrl: '', note: '', parkingDesc: '', parkingMapUrl: '', type: 'activity' }); showModal.value = true; },
                     saveForm,
-                    removeItem: async (idx) => { if(confirm('確定刪除？')) { dailyData.value[currentDay.value-1].splice(idx,1); syncToCloud('dailySchedule', dailyData.value); } },
-                    addCategory: async () => { if(newCategoryName.value) { packingData.value[newCategoryName.value] = []; await syncToCloud('packingData', packingData.value); newCategoryName.value = ''; } },
-                    removeCategory: async (c) => { if(confirm('刪除類別？')) { delete packingData.value[c]; await syncToCloud('packingData', packingData.value); } },
-                    addPackingItem: async (c) => { if(newPackingItems[c]) { packingData.value[c].push({name: newPackingItems[c], checked: false}); await syncToCloud('packingData', packingData.value); newPackingItems[c] = ''; } },
+                    removeItem: async (idx) => { if(confirm('刪除？')) { dailyData.value[currentDay.value-1].splice(idx,1); syncToCloud('dailySchedule', dailyData.value); } },
+                    addCategory, removeCategory, addPackingItem,
+                    removePackingItem: async (c, i) => { packingData.value[c].splice(i, 1); syncToCloud('packingData', packingData.value); },
                     toggleList: async (t) => syncToCloud(t === 'pre' ? 'preTripItems' : 'packingData', t === 'pre' ? preTripItems.value : packingData.value),
                     addPreTripItem: async () => { if(newPreTripItem.value) { preTripItems.value.push({name: newPreTripItem.value, checked: false}); await syncToCloud('preTripItems', preTripItems.value); newPreTripItem.value = ''; } },
                     removePreTripItem: async (i) => { preTripItems.value.splice(i,1); await syncToCloud('preTripItems', preTripItems.value); },
                     newPreTripItem, newPackingItems, newCategoryName,
-                    resetAllData() { if(confirm('確定要重置所有數據？')) { syncToCloud('dailySchedule', initialDailyData); syncToCloud('packingData', initialPackingData); syncToCloud('preTripItems', initialPreTripItems); } }
+                    resetAllData() { if(confirm('重置所有數據？')) { syncToCloud('dailySchedule', initialDailyData); syncToCloud('packingData', initialPackingData); syncToCloud('preTripItems', initialPreTripItems); syncToCloud('routeMap', initialRouteMap); } }
                 };
             }
         }).mount('#app');
@@ -186,99 +229,85 @@
 </head>
 <body class="app-bg pb-32">
     <div id="app" v-cloak>
-        <!-- 登入介面 -->
+        <!-- 登入與 Loading 略過... -->
         <div v-if="!user && !isLoading && !configError" class="fixed inset-0 z-[300] bg-[#e0f2fe] flex items-center justify-center p-6">
             <div class="glass-card w-full max-w-sm p-10 text-center shadow-2xl">
-                <div class="bg-blue-600 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg shadow-blue-200">
-                    <i class="fas fa-lock text-2xl"></i>
-                </div>
-                <h2 class="text-2xl font-black text-gray-800 mb-2">指定用戶存取</h2>
-                <p class="text-sm text-gray-400 mb-8">請登入帳號以開始同步行程</p>
+                <div class="bg-blue-600 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg"><i class="fas fa-user-lock text-2xl"></i></div>
+                <h2 class="text-2xl font-black mb-2">指定用戶登入</h2>
+                <p class="text-sm text-gray-400 mb-8">請輸入管理員分發的帳密</p>
                 <div class="space-y-4">
-                    <input v-model="loginEmail" type="email" placeholder="帳號 Email" class="w-full bg-white p-4 rounded-2xl text-sm border-none outline-none shadow-sm">
-                    <input v-model="loginPassword" type="password" placeholder="密碼" class="w-full bg-white p-4 rounded-2xl text-sm border-none outline-none shadow-sm">
-                    <p v-if="loginError" class="text-[10px] text-red-500 font-bold">{{ loginError }}</p>
-                    <button @click="handleLogin" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl transition-transform active:scale-95 mt-4">立即登入</button>
+                    <input v-model="loginEmail" placeholder="Email" class="w-full bg-white p-4 rounded-2xl outline-none shadow-sm">
+                    <input v-model="loginPassword" type="password" placeholder="密碼" class="w-full bg-white p-4 rounded-2xl outline-none shadow-sm">
+                    <p v-if="loginError" class="text-red-500 text-xs">{{ loginError }}</p>
+                    <button @click="handleLogin" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl mt-4">立即進入</button>
                 </div>
             </div>
         </div>
 
-        <!-- 狀態檢查 -->
         <div v-if="isLoading || configError" class="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center p-8 text-center">
-            <div v-if="configError">
+            <template v-if="configError">
                 <i class="fas fa-exclamation-triangle text-4xl text-orange-400 mb-4"></i>
                 <h2 class="text-xl font-bold mb-2">請設定 Firebase Config</h2>
-                <p class="text-sm text-gray-500">你需要將 Firebase 的金鑰貼入第 20 行起的內容才能開啟同步。</p>
-            </div>
-            <div v-else>
+            </template>
+            <template v-else>
                 <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mx-auto"></div>
-                <p class="mt-4 text-blue-500 font-bold">同步中...</p>
-            </div>
+                <p class="mt-4 text-blue-500 font-bold">同步雲端數據中...</p>
+            </template>
         </div>
 
-        <!-- 頁首 -->
-        <header v-if="user" class="sticky top-0 z-40 px-6 pt-8 pb-4 bg-[#e0f2fe] bg-opacity-95 backdrop-blur-md border-b border-blue-100 flex justify-between items-end">
+        <header v-if="user" class="sticky top-0 z-40 px-6 pt-8 pb-4 bg-[#e0f2fe] bg-opacity-95 border-b border-blue-100 flex justify-between items-end">
             <div>
-                <h1 class="text-2xl font-black text-gray-800 tracking-tight">美西同步手帳</h1>
-                <p class="text-[9px] text-blue-400 tracking-wider">Hello, {{ user.email }}</p>
+                <h1 class="text-2xl font-black text-gray-800">美西同步手帳</h1>
+                <p class="text-[9px] text-blue-400">{{ user.email }}</p>
             </div>
             <div class="flex gap-2">
-                <button @click="resetAllData" class="text-[10px] bg-white px-2 py-1 rounded-lg text-gray-400 border border-gray-100">重置</button>
-                <button @click="handleLogout" class="text-[10px] bg-red-50 px-2 py-1 rounded-lg text-red-400 border border-red-100 font-bold">登出</button>
+                <button @click="resetAllData" class="text-[10px] bg-white px-2 py-1 rounded-lg text-gray-400 border">重置</button>
+                <button @click="handleLogout" class="text-[10px] bg-red-50 px-2 py-1 rounded-lg text-red-400 font-bold">登出</button>
             </div>
         </header>
 
         <main v-if="user" class="px-5 pt-4">
             <!-- 1. 行程表 -->
             <div v-if="currentTab === 'schedule'">
-                <div class="flex overflow-x-auto gap-3 mb-6 hide-scrollbar py-2">
+                <div class="flex overflow-x-auto gap-3 mb-6 hide-scrollbar py-2 text-center">
                     <button v-for="d in 15" :key="d" @click="currentDay = d"
                         :class="currentDay === d ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-white text-gray-500'"
-                        class="flex-shrink-0 w-14 h-16 rounded-2xl flex flex-col items-center justify-center transition-all duration-300">
-                        <span class="text-[10px] font-bold opacity-70 uppercase">Day</span>
-                        <span class="text-lg font-black">{{ d }}</span>
+                        class="flex-shrink-0 w-14 h-16 rounded-2xl flex flex-col items-center justify-center transition-all">
+                        <span class="text-[10px] font-bold">Day</span><span class="text-lg font-black">{{ d }}</span>
                     </button>
                 </div>
                 <div class="space-y-5 text-left pb-10">
                     <div v-for="(item, idx) in dailyData[currentDay-1]" :key="idx" class="glass-card p-5 shadow-sm relative group">
                         <div class="flex gap-4 items-start">
-                            <div class="flex flex-col items-center min-w-[50px] font-black text-blue-600 text-sm">{{ item.time }}</div>
+                            <div class="min-w-[50px] font-black text-blue-600 text-sm">{{ item.time }}</div>
                             <div class="flex-1">
                                 <div class="flex justify-between items-center mb-1">
-                                    <div class="flex items-center gap-2">
-                                        <h3 class="font-bold text-gray-800 text-lg leading-tight">{{ item.title }}</h3>
-                                        <a v-if="item.mapUrl" :href="item.mapUrl" target="_blank" class="text-red-500 hover:text-red-700">
-                                            <i class="fas fa-location-dot text-xs"></i>
-                                        </a>
-                                    </div>
+                                    <h3 class="font-bold text-gray-800 leading-tight">{{ item.title }} <a v-if="item.mapUrl" :href="item.mapUrl" target="_blank" class="text-red-500 ml-1"><i class="fas fa-location-dot text-[10px]"></i></a></h3>
                                     <div class="flex gap-2">
-                                        <button @click="openEditModal(item, idx)" class="text-gray-400 hover:text-blue-500 transition-colors"><i class="fas fa-pen text-xs"></i></button>
-                                        <button @click="removeItem(idx)" class="text-red-200 hover:text-red-500 transition-colors"><i class="fas fa-trash text-xs"></i></button>
+                                        <button @click="openEditModal(item, idx)" class="text-gray-400"><i class="fas fa-pen text-xs"></i></button>
+                                        <button @click="removeItem(idx)" class="text-red-200"><i class="fas fa-trash text-xs"></i></button>
                                     </div>
                                 </div>
                                 <p class="text-xs text-gray-500 mb-1 leading-relaxed">{{ item.desc }}</p>
-                                <div v-if="item.note" class="note-box p-2 rounded-xl mt-2 text-[11px] text-yellow-800 leading-relaxed"><i class="fas fa-sticky-note mr-1 opacity-50"></i>{{ item.note }}</div>
+                                <div v-if="item.note" class="note-box p-2 rounded-xl mt-2 text-[11px] text-yellow-800 leading-relaxed">{{ item.note }}</div>
                                 <div v-if="item.parkingDesc" class="parking-box p-2 rounded-xl mt-2 text-[11px] text-blue-800 leading-relaxed shadow-sm">
-                                    <div class="flex justify-between items-center mb-1">
-                                        <span class="font-bold uppercase opacity-70"><i class="fas fa-square-p mr-1"></i>Parking</span>
-                                        <a v-if="item.parkingMapUrl" :href="item.parkingMapUrl" target="_blank" class="text-blue-600 font-bold">導航</a>
-                                    </div>
+                                    <div class="flex justify-between items-center mb-1"><span class="font-bold uppercase opacity-70">Parking</span><a v-if="item.parkingMapUrl" :href="item.parkingMapUrl" target="_blank" class="text-blue-600 font-bold">導航</a></div>
                                     {{ item.parkingDesc }}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <button @click="openAddModal" class="w-full py-5 border-2 border-dashed border-blue-200 rounded-[30px] text-blue-400 font-bold text-sm hover:bg-blue-50">+ 新增 Day {{currentDay}} 行程</button>
+                    <button @click="openAddModal" class="w-full py-4 border-2 border-dashed border-blue-200 rounded-[30px] text-blue-400 font-bold">+ 新增行程項目</button>
                 </div>
             </div>
 
             <!-- 2. 總體路線 -->
-            <div v-if="currentTab === 'route'" class="space-y-4 text-left">
+            <div v-if="currentTab === 'route'" class="space-y-4 text-left pb-10">
                 <div v-for="(route, rIdx) in routeMap" :key="rIdx" class="glass-card p-6 relative overflow-hidden shadow-sm">
                     <div class="absolute -right-4 -top-4 text-blue-50 text-7xl font-black italic opacity-60">0{{rIdx+1}}</div>
-                    <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">{{ route.days }}</span>
-                    <h3 class="text-xl font-black text-gray-800 mt-1 mb-3">{{ route.city }}</h3>
-                    <p class="text-[13px] text-gray-500 leading-relaxed border-t border-gray-50 pt-4">{{ route.highlights }}</p>
+                    <span class="text-[10px] font-bold text-blue-500 uppercase">{{ route.days }}</span>
+                    <h3 class="text-xl font-black text-gray-800 mt-1 mb-2">{{ route.city }}</h3>
+                    <p class="text-[13px] text-gray-500 leading-relaxed border-t border-gray-50 pt-3">{{ route.highlights }}</p>
                 </div>
             </div>
 
@@ -295,15 +324,19 @@
                             <input type="checkbox" v-model="item.checked" @change="toggleList('pre')" class="w-6 h-6 rounded-full border-blue-200 text-blue-600 focus:ring-0">
                             <span class="text-gray-700 font-medium">{{ item.name }}</span>
                         </label>
-                        <button @click="removePreTripItem(idx)" class="text-red-200 hover:text-red-500"><i class="fas fa-times-circle"></i></button>
+                        <button @click="removePreTripItem(idx)" class="text-red-200 hover:text-red-500 transition-colors"><i class="fas fa-times-circle"></i></button>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <input v-model="newPreTripItem" @keyup.enter="addPreTripItem" placeholder="新增預購物品..." class="flex-1 bg-white p-3 rounded-2xl text-sm outline-none shadow-sm">
+                        <button @click="addPreTripItem" class="bg-blue-600 text-white w-12 h-12 rounded-2xl shadow-lg"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
 
                 <div v-if="listSubTab === 'packing'" class="space-y-8 pb-20 text-left">
                     <div v-for="(items, category) in packingData" :key="category">
-                        <h3 class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-4 px-2 flex justify-between items-center">
-                            <span>{{ category }}</span>
-                            <button @click="removeCategory(category)" class="text-red-200 text-[9px] font-bold">刪除類別</button>
+                        <h3 class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-4 px-2 flex justify-between items-center group">
+                            <span><i class="fas fa-tag mr-2 text-blue-200"></i>{{ category }}</span>
+                            <button @click="removeCategory(category)" class="text-red-200 opacity-0 group-hover:opacity-100 transition-all text-[9px] font-bold">刪除類別</button>
                         </h3>
                         <div class="grid grid-cols-1 gap-2">
                             <div v-for="(item, idx) in items" :key="idx" class="glass-card px-4 py-3 flex items-center justify-between group shadow-sm">
@@ -314,6 +347,14 @@
                                 <button @click="removePackingItem(category, idx)" class="text-red-100"><i class="fas fa-times-circle text-xs"></i></button>
                             </div>
                         </div>
+                        <div class="mt-3 flex gap-2">
+                            <input v-model="newPackingItems[category]" @keyup.enter="addPackingItem(category)" placeholder="新增項目..." class="flex-1 bg-white bg-opacity-50 p-2.5 px-4 rounded-xl text-xs outline-none">
+                            <button @click="addPackingItem(category)" class="bg-blue-400 text-white px-5 rounded-xl text-xs font-bold shadow-sm">新增</button>
+                        </div>
+                    </div>
+                    <div class="pt-6 border-t border-gray-100">
+                        <input v-model="newCategoryName" @keyup.enter="addCategory" placeholder="新行李類別..." class="w-full bg-white border border-blue-100 p-4 rounded-2xl text-sm mb-2 outline-none">
+                        <button @click="addCategory" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-sm shadow-xl">新增類別</button>
                     </div>
                 </div>
             </div>
@@ -322,25 +363,25 @@
         <!-- 編輯彈窗 -->
         <div v-if="showModal" class="fixed inset-0 z-[100] modal-overlay flex items-center justify-center p-6 text-left">
             <div class="bg-white w-full max-w-sm rounded-[40px] shadow-2xl overflow-hidden p-8 animate-in zoom-in duration-200">
-                <h2 class="text-xl font-black mb-6 text-gray-800">{{ isEditing ? '編輯項目' : '新增項目' }}</h2>
+                <h2 class="text-xl font-black mb-6 text-gray-800">{{ isEditing ? '編輯行程' : '新增行程' }}</h2>
                 <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 hide-scrollbar">
                     <input v-model="form.time" placeholder="時間 (如 09:00)" class="w-full bg-gray-50 p-3.5 rounded-2xl text-sm outline-none">
-                    <input v-model="form.title" placeholder="名稱" class="w-full bg-gray-50 p-3.5 rounded-2xl text-sm outline-none">
-                    <textarea v-model="form.desc" placeholder="描述" class="w-full bg-gray-50 p-3.5 rounded-2xl text-sm outline-none"></textarea>
+                    <input v-model="form.title" placeholder="地點名稱" class="w-full bg-gray-50 p-3.5 rounded-2xl text-sm outline-none">
+                    <textarea v-model="form.desc" placeholder="簡短描述" class="w-full bg-gray-50 p-3.5 rounded-2xl text-sm outline-none"></textarea>
                     <textarea v-model="form.note" placeholder="個人備註" class="w-full bg-yellow-50 p-3.5 rounded-2xl text-sm outline-none"></textarea>
                     <input v-model="form.parkingDesc" placeholder="泊車點描述" class="w-full bg-blue-50 p-3.5 rounded-2xl text-sm outline-none">
                 </div>
                 <div class="flex gap-3 mt-6">
                     <button @click="showModal = false" class="flex-1 font-bold text-gray-400 py-4">取消</button>
-                    <button @click="saveForm" class="flex-[2] py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-100">儲存</button>
+                    <button @click="saveForm" class="flex-[2] py-4 bg-blue-600 text-white font-bold rounded-[20px] shadow-lg">儲存並同步</button>
                 </div>
             </div>
         </div>
 
-        <nav v-if="user" class="fixed bottom-0 left-0 right-0 bg-white bg-opacity-95 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-5 px-3 shadow-2xl z-50">
-            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" :class="currentTab === tab.id ? 'tab-active' : 'text-gray-400'" class="flex flex-col items-center gap-1.5 w-1/3 transition-all duration-300">
+        <nav v-if="user" class="fixed bottom-0 left-0 right-0 bg-white bg-opacity-95 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-5 shadow-2xl z-50">
+            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" :class="currentTab === tab.id ? 'tab-active' : 'text-gray-400'" class="flex flex-col items-center gap-1.5 w-1/3">
                 <i :class="tab.icon" class="text-2xl"></i>
-                <span class="text-[11px] font-black uppercase tracking-tighter">{{ tab.name }}</span>
+                <span class="text-[11px] font-black uppercase">{{ tab.name }}</span>
             </button>
         </nav>
     </div>
